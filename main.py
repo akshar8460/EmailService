@@ -1,18 +1,28 @@
-import uvicorn
-from fastapi import FastAPI
-from schema import *
+import json
+
 import smtp_client
-app = FastAPI()
+import pika
+
+# Establish a connection to RabbitMQ
+credentials = pika.PlainCredentials('admin', 'admin')
+connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', 5672, '/', credentials))
+channel = connection.channel()
+
+# Create the queue
+channel.queue_declare(queue='email_queue')
 
 
-@app.post("/email")
-def send_email(payload: SendEmail):
-    rec_email = payload.email
-    email_type = payload.type
-    template_data = payload.template_data
+# Define a callback function to process incoming messages
+def send_email(ch, method, properties, body):
+    body = json.loads(body)
+    rec_email = body["email"]
+    email_type = body["type"]
+    template_data = body["template_data"]
     smtp_client.send_email(rec_email, email_type, template_data)
-    return {"success": True, "description": "Email Sent"}
+    print("Received:", body)
 
 
-if __name__ == "__main__":
-    uvicorn.run(app, port=8001)
+# Set up the consumer and start listening for messages
+channel.basic_consume(queue='email_queue', on_message_callback=send_email, auto_ack=True)
+print("Waiting for messages")
+channel.start_consuming()
