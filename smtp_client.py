@@ -5,26 +5,24 @@ from config import *
 
 from jinja2 import Environment, FileSystemLoader
 
+from email_mapping import EMAIL_MAPPER
+
 env = Environment(loader=FileSystemLoader('templates'))
-template = env.get_template('email_template.html')
 
 
-def send_email(sender_email, receiver_email, subject, name, info):
+def send_email(receiver_email, email_type, template_data):
     # SMTP server configuration
     smtp_port = 587
 
     # Create a multipart message
     msg = MIMEMultipart()
-    msg["From"] = sender_email
+    msg["From"] = SENDER_EMAIL
     msg["To"] = receiver_email
-    msg["Subject"] = subject
+    msg["Subject"] = EMAIL_MAPPER.get(email_type)
 
     # HTML Content
-    context = {
-        "name": name,
-        "info": info
-    }
-    html_content = template.render(context)
+    template = env.get_template(f'{email_type}.html')
+    html_content = template.render(template_data)
 
     # Add message body
     # msg.attach(MIMEText(message, "plain"))
@@ -46,9 +44,10 @@ def send_email(sender_email, receiver_email, subject, name, info):
 
 
 # Example usage
-sender_email = "aksharpatel5671@gmail.com"
-receiver_email = "akshar8460@gmail.com"
-subject = "Test Email"
-# message = "This is a test email sent from Python."
+if __name__ == "__main__":
+    sender_email = "aksharpatel5671@gmail.com"
+    receiver_email = "akshar8460@gmail.com"
+    subject = "Test Email"
+    # message = "This is a test email sent from Python."
 
-send_email(sender_email, receiver_email, subject, name="Ganesh", info="Temporary Information..!!")
+    send_email(sender_email, receiver_email, subject)
